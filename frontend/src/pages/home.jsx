@@ -1,36 +1,70 @@
-import { useContext, useEffect, useState } from 'react';
-import { AuthContext } from '../context/auth-context';
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { useState } from 'react';
+import { useAuth } from '../hooks/use-auth';
+import { usePets } from '../hooks/use-pets';
+import Navbar from '../components/ui/navbar';
+import CreatePet from '../components/create-pet';
+import PetCard from '../components/pet-card';
 
 export default function Home() {
-    const { user } = useContext(AuthContext);
-    const [pets, setPets] = useState([]);
-
-    useEffect(() => {
-        fetch(`${API_URL}/pets`)
-            .then((res) => res.json())
-            .then((data) => setPets(data))
-            .catch((error) => console.error('GET PETS ERROR:', error));
-    }, []);
+    const { user } = useAuth();
+    const { pets, errorMessage, deletePet } = usePets();
+    const [editingPet, setEditingPet] = useState(null);
 
     if (!user) {
-        return <p className="p-4">No autenticado</p>;
+        return <p className="p-6">No autenticado</p>;
     }
 
-    return (
-        <div className="p-4">
-            <h1 className="text-2xl mb-4">Hola {user.name}</h1>
+    const isOwner = user.role === 'owner';
+    const isCaretaker = user.role === 'caretaker';
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {pets.map((pet) => (
-                    <div key={pet._id} className="border rounded-lg p-4 bg-white">
-                        <h2 className="text-lg font-semibold">{pet.name}</h2>
-                        <p>{pet.species}</p>
-                        <p>{pet.description}</p>
+    const handleDelete = async (petId) => {
+        try {
+            await deletePet(petId);
+        } catch (error) {
+            console.error(error.message);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-[#F8F8F8]">
+            <Navbar />
+
+            <main className="p-6">
+                <h1 className="text-2xl font-semibold text-[#2B7A78] mb-6">
+                    Tablero de publicaciones
+                </h1>
+
+                {isOwner || user.isAdmin ? (
+                    <div className="mb-8">
+                        <CreatePet
+                            editingPet={editingPet}
+                            onCancelEdit={() => setEditingPet(null)}
+                        />
                     </div>
-                ))}
-            </div>
+                ) : null}
+
+                {errorMessage ? (
+                    <p className="text-sm text-red-600 mb-4">{errorMessage}</p>
+                ) : null}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {pets.map((pet) => {
+                        const canManage =
+                            user.isAdmin || pet.owner?._id === user._id;
+
+                        return (
+                            <PetCard
+                                key={pet._id}
+                                pet={pet}
+                                canManage={canManage}
+                                isCaretaker={isCaretaker}
+                                onEdit={setEditingPet}
+                                onDelete={handleDelete}
+                            />
+                        );
+                    })}
+                </div>
+            </main>
         </div>
     );
 }
