@@ -1,69 +1,101 @@
-import { useState } from 'react';
-import { useAuth } from '../hooks/use-auth';
-import { usePets } from '../hooks/use-pets';
+/**
+ * =========================================================
+ * ESTRUCTURA GENERAL DEL ARCHIVO
+ * - Página de detalle de una mascota
+ * - Muestra imagen, descripción completa y dueño
+ * =========================================================
+ */
+
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import Navbar from '../components/ui/navbar';
-import CreatePet from '../components/create-pet';
-import PetCard from '../components/pet-card';
+import Card from '../components/ui/card';
 
-export default function Home() {
-    const { user } = useAuth();
-    const { pets, errorMessage, deletePet } = usePets();
-    const [editingPet, setEditingPet] = useState(null);
+const API_URL = import.meta.env.VITE_API_URL;
 
-    if (!user) {
-        return <p className="p-6">No autenticado</p>;
-    }
+const fallbackImage =
+    'https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=800&q=80';
 
-    const isOwner = user.role === 'owner';
-    const isCaretaker = user.role === 'caretaker';
+/**
+ * Página de detalle de mascota.
+ *
+ * Hooks usados:
+ * - useParams: obtiene el id desde la URL
+ * - useState: guarda mascota y error
+ * - useEffect: ejecuta la carga inicial del detalle
+ *
+ * @returns {JSX.Element}
+ */
+export default function PetDetail() {
+    const { id } = useParams();
+    const [pet, setPet] = useState(null);
+    const [errorMessage, setErrorMessage] = useState('');
 
-    const handleDelete = async (petId) => {
-        try {
-            await deletePet(petId);
-        } catch (error) {
-            console.error(error.message);
+    useEffect(() => {
+        let isMounted = true;
+
+        async function fetchPet() {
+            try {
+                const response = await fetch(`${API_URL}/pets/${id}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Error fetching pet');
+                }
+
+                if (isMounted) {
+                    setPet(data);
+                }
+            } catch (error) {
+                if (isMounted) {
+                    setErrorMessage(error.message);
+                }
+            }
         }
-    };
+
+        fetchPet();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [id]);
 
     return (
-        <div className="min-h-screen bg-[#F8F8F8]">
+        <div className="min-h-screen bg-[var(--color-background)]">
             <Navbar />
 
-            <main className="p-6">
-                <h1 className="text-2xl font-semibold text-[#2B7A78] mb-6">
-                    Tablero de publicaciones
-                </h1>
-
-                {isOwner || user.isAdmin ? (
-                    <div className="mb-8">
-                        <CreatePet
-                            editingPet={editingPet}
-                            onCancelEdit={() => setEditingPet(null)}
-                        />
-                    </div>
-                ) : null}
-
+            <main className="p-6 max-w-5xl mx-auto">
                 {errorMessage ? (
-                    <p className="text-sm text-red-600 mb-4">{errorMessage}</p>
+                    <p className="text-red-600">{errorMessage}</p>
                 ) : null}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {pets.map((pet) => {
-                        const canManage =
-                            user.isAdmin || pet.owner?._id === user._id;
+                {pet ? (
+                    <Card>
+                        <img
+                            src={pet.imageUrl || fallbackImage}
+                            alt={pet.name}
+                            className="w-full max-h-[420px] object-cover rounded-xl mb-6"
+                        />
 
-                        return (
-                            <PetCard
-                                key={pet._id}
-                                pet={pet}
-                                canManage={canManage}
-                                isCaretaker={isCaretaker}
-                                onEdit={setEditingPet}
-                                onDelete={handleDelete}
-                            />
-                        );
-                    })}
-                </div>
+                        <h1 className="text-3xl font-semibold mb-2">
+                            {pet.name}
+                        </h1>
+
+                        <p className="text-gray-600 mb-2">
+                            {pet.species} · {pet.age} años
+                        </p>
+
+                        <p className="text-gray-700 mb-6">
+                            {pet.description}
+                        </p>
+
+                        <p className="text-sm text-gray-500">
+                            Publicado por: {pet.owner?.name}
+                        </p>
+                    </Card>
+                ) : (
+                    <p>Cargando...</p>
+                )}
             </main>
         </div>
     );

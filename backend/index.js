@@ -15,14 +15,19 @@ const app = express();
 const port = process.env.PORT || 3000;
 const mongoURI = process.env.MONGO_URI;
 
+/* Middlewares globales */
 app.use(cors());
-app.use(express.json());
+
+/* Permitimos cuerpos más grandes porque la imagen se envía en base64 */
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 mongoose
     .connect(mongoURI)
     .then(() => console.log('MongoDB connected'))
     .catch((error) => console.log('Could not connect to MongoDB:', error));
 
+/* Rutas principales */
 app.use('/users', usersRouter);
 app.use('/pets', petsRouter);
 app.use('/requests', requestRouter);

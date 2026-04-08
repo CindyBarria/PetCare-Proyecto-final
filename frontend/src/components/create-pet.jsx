@@ -1,9 +1,18 @@
+/**
+ * =========================================================
+ * ESTRUCTURA GENERAL DEL ARCHIVO
+ * - Formulario para crear y editar mascotas
+ * - Permite subir imagen local
+ * - Notifica al Home cuando se guarda correctamente
+ * =========================================================
+ */
+
 import { useEffect, useState } from 'react';
+import { usePets } from '../hooks/use-pets';
 import Input from './ui/input';
 import Button from './ui/button';
-import Card from './ui/card';
-import { usePets } from '../hooks/use-pets';
 
+/* Estado inicial del formulario */
 const initialFormState = {
     name: '',
     species: '',
@@ -13,10 +22,29 @@ const initialFormState = {
     imageUrl: ''
 };
 
-export default function CreatePet({ editingPet, onCancelEdit }) {
+/**
+ * Formulario de mascota.
+ *
+ * @param {Object} props
+ * @param {Object|null} props.editingPet
+ * @param {Function} props.onCancelEdit
+ * @param {Function} props.onPetSaved
+ * @returns {JSX.Element}
+ */
+export default function CreatePet({
+    editingPet,
+    onCancelEdit,
+    onPetSaved
+}) {
     const { createPet, updatePet } = usePets();
+
+    /* Estado del formulario */
     const [form, setForm] = useState(initialFormState);
+
+    /* Estado de error */
     const [errorMessage, setErrorMessage] = useState('');
+
+    /* Estado de carga */
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
@@ -42,6 +70,11 @@ export default function CreatePet({ editingPet, onCancelEdit }) {
         form.shortDescription.trim() !== '' &&
         form.description.trim() !== '';
 
+    /**
+     * Actualiza un campo del formulario.
+     *
+     * @param {Object} event
+     */
     const handleChange = ({ target: { name, value } }) => {
         setForm((prevForm) => ({
             ...prevForm,
@@ -49,8 +82,44 @@ export default function CreatePet({ editingPet, onCancelEdit }) {
         }));
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    /**
+     * Convierte imagen local a base64.
+     *
+     * @param {Object} event
+     */
+    const handleImageChange = (event) => {
+        const selectedFile = event.target.files[0];
+
+        if (!selectedFile) return;
+
+        const maxSizeInBytes = 2 * 1024 * 1024;
+
+        if (selectedFile.size > maxSizeInBytes) {
+            setErrorMessage('La imagen es demasiado grande. Usa una imagen menor a 2MB.');
+            return;
+        }
+
+        setErrorMessage('');
+
+        const reader = new FileReader();
+
+        reader.onloadend = () => {
+            setForm((prevForm) => ({
+                ...prevForm,
+                imageUrl: reader.result
+            }));
+        };
+
+        reader.readAsDataURL(selectedFile);
+    };
+
+    /**
+     * Envía el formulario al backend.
+     *
+     * @param {Object} event
+     */
+    const handleSubmit = async (event) => {
+        event.preventDefault();
 
         if (!isFormValid) return;
 
@@ -63,16 +132,19 @@ export default function CreatePet({ editingPet, onCancelEdit }) {
                 age: Number(form.age)
             };
 
+            let savedPet = null;
+
             if (editingPet) {
-                await updatePet(editingPet._id, payload);
+                const response = await updatePet(editingPet._id, payload);
+                savedPet = response?.pet || response;
             } else {
-                await createPet(payload);
+                savedPet = await createPet(payload);
             }
 
             setForm(initialFormState);
 
-            if (editingPet && onCancelEdit) {
-                onCancelEdit();
+            if (onPetSaved) {
+                onPetSaved(savedPet);
             }
         } catch (error) {
             setErrorMessage(error.message);
@@ -82,15 +154,16 @@ export default function CreatePet({ editingPet, onCancelEdit }) {
     };
 
     return (
-        <Card>
-            <form onSubmit={handleSubmit} className="w-full">
-                <h2 className="text-xl font-semibold text-[#2B7A78] mb-4">
-                    {editingPet ? 'Editar publicación' : 'Crear publicación'}
-                </h2>
+        /* Inicio: formulario de mascota */
+        <form onSubmit={handleSubmit} className="w-full">
+            <h2 className="text-xl font-semibold text-[var(--color-primary)] mb-4">
+                {editingPet ? 'Editar mascota' : 'Agregar mascota'}
+            </h2>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <Input
                     name="name"
-                    placeholder="Nombre de la mascota"
+                    placeholder="Nombre"
                     value={form.name}
                     onChange={handleChange}
                 />
@@ -116,37 +189,54 @@ export default function CreatePet({ editingPet, onCancelEdit }) {
                     value={form.shortDescription}
                     onChange={handleChange}
                 />
+            </div>
 
-                <Input
-                    name="description"
-                    placeholder="Descripción completa"
-                    value={form.description}
-                    onChange={handleChange}
+            <Input
+                name="description"
+                placeholder="Descripción completa"
+                value={form.description}
+                onChange={handleChange}
+            />
+
+            {/* Selector de imagen */}
+            <div className="mb-3">
+                <label className="block text-sm text-[var(--color-text-light)] mb-2">
+                    Imagen de la mascota
+                </label>
+
+                <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="w-full border border-[#7A7A7A] rounded-lg bg-white p-3"
                 />
+            </div>
 
-                <Input
-                    name="imageUrl"
-                    placeholder="URL de la imagen"
-                    value={form.imageUrl}
-                    onChange={handleChange}
-                />
-
-                {errorMessage ? (
-                    <p className="text-sm text-red-600 mb-3">{errorMessage}</p>
-                ) : null}
-
-                <div className="flex gap-3">
-                    <Button type="submit" disabled={!isFormValid || isLoading}>
-                        {isLoading ? 'Guardando...' : editingPet ? 'Actualizar' : 'Publicar'}
-                    </Button>
-
-                    {editingPet ? (
-                        <Button type="button" onClick={onCancelEdit}>
-                            Cancelar
-                        </Button>
-                    ) : null}
+            {/* Vista previa */}
+            {form.imageUrl ? (
+                <div className="mb-4">
+                    <img
+                        src={form.imageUrl}
+                        alt="Vista previa"
+                        className="w-full h-40 object-cover rounded-xl"
+                    />
                 </div>
-            </form>
-        </Card>
+            ) : null}
+
+            {errorMessage ? (
+                <p className="text-sm text-red-600 mb-3">{errorMessage}</p>
+            ) : null}
+
+            <div className="flex flex-col md:flex-row gap-3">
+                <Button type="submit" disabled={!isFormValid || isLoading}>
+                    {isLoading ? 'Guardando...' : editingPet ? 'Actualizar' : 'Publicar'}
+                </Button>
+
+                <Button type="button" onClick={onCancelEdit}>
+                    Cancelar
+                </Button>
+            </div>
+        </form>
+        /* Fin: formulario de mascota */
     );
 }

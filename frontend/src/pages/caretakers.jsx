@@ -1,9 +1,22 @@
+/**
+ * =========================================================
+ * ESTRUCTURA GENERAL DEL ARCHIVO
+ * - Página con listado de cuidadores
+ * - Obtiene usuarios y filtra por role caretaker
+ * =========================================================
+ */
+
 import { useEffect, useState } from 'react';
 import Navbar from '../components/ui/navbar';
 import Card from '../components/ui/card';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+/**
+ * Página de cuidadores.
+ *
+ * @returns {JSX.Element}
+ */
 export default function Caretakers() {
     const [caretakers, setCaretakers] = useState([]);
     const [errorMessage, setErrorMessage] = useState('');
@@ -13,13 +26,14 @@ export default function Caretakers() {
 
         async function fetchCaretakers() {
             try {
-                const res = await fetch(`${API_URL}/users`);
-                const data = await res.json();
+                const response = await fetch(`${API_URL}/users`);
+                const data = await response.json();
 
-                if (!res.ok) {
+                if (!response.ok) {
                     throw new Error(data.message || 'Error fetching users');
                 }
 
+                /* Filtrado de usuarios con rol cuidador */
                 const filteredCaretakers = data.filter((user) => user.role === 'caretaker');
 
                 if (isMounted) {
@@ -40,11 +54,11 @@ export default function Caretakers() {
     }, []);
 
     return (
-        <div className="min-h-screen bg-[#F8F8F8]">
+        <div className="min-h-screen bg-[var(--color-background)]">
             <Navbar />
 
-            <main className="p-6">
-                <h1 className="text-2xl font-semibold text-[#2B7A78] mb-6">
+            <main className="p-6 max-w-7xl mx-auto">
+                <h1 className="text-2xl font-semibold text-[var(--color-primary)] mb-6">
                     Cuidadores
                 </h1>
 
@@ -52,10 +66,10 @@ export default function Caretakers() {
                     <p className="text-red-600 mb-4">{errorMessage}</p>
                 ) : null}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {caretakers.map((caretaker) => (
                         <Card key={caretaker._id}>
-                            <div className="w-20 h-20 rounded-full bg-[#E5E5E5] flex items-center justify-center text-2xl font-semibold text-[#2B7A78] mb-4">
+                            <div className="w-20 h-20 rounded-full bg-[#E5E5E5] flex items-center justify-center text-2xl font-semibold text-[var(--color-primary)] mb-4">
                                 {caretaker.name.charAt(0)}
                             </div>
 
@@ -66,7 +80,7 @@ export default function Caretakers() {
                             </p>
                         </Card>
                     ))}
-                </div>
+                </section>
             </main>
         </div>
     );
