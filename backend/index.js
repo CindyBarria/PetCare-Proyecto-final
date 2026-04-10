@@ -22,11 +22,13 @@ const userRouter = require('./routers/users-router');
 const petRouter = require('./routers/pets-router');
 const reviewRouter = require('./routers/review-router');
 const requestRouter = require('./routers/request-router');
+const cors = require('cors');
 
 /* Middlewares de error */
 const { notFound, errorHandler } = require('./middlewares/error-middleware');
 
 const app = express();
+app.use(cors());
 
 /**
  * =========================================================
