@@ -13,7 +13,7 @@ export default function Button({
     fullWidth = true
 }) {
     const baseStyles =
-        'h-12 rounded-full font-medium transition-colors px-5';
+        'h-14 rounded-full font-medium transition-colors px-5 text-xl';
 
     const widthStyles = fullWidth ? 'w-full' : 'w-auto';
 

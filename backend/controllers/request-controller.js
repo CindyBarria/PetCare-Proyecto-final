@@ -1,85 +1,140 @@
-const Request = require('../models/request');
-const Pets = require('../models/pet');
+/**
+ * =========================================================
+ * ESTRUCTURA GENERAL DEL ARCHIVO
+ * - Controladores de solicitudes
+ * - Crear, listar y actualizar solicitudes
+ * =========================================================
+ */
 
+const Request = require('../models/request');
+const Pet = require('../models/pet');
+
+/**
+ * Crea una solicitud de cuidado.
+ * Solo el cuidador debería usar esta acción.
+ *
+ * @param {Object} req
+ * @param {Object} res
+ * @returns {Promise<void>}
+ */
 async function createRequest(req, res) {
     try {
-        const { pet, owner, caretaker, message } = req.body;
+        const { petId } = req.body;
+
+        if (!petId) {
+            return res.status(400).json({
+                message: 'Pet id is required'
+            });
+        }
+
+        const pet = await Pet.findById(petId);
+
+        if (!pet) {
+            return res.status(404).json({
+                message: 'Pet not found'
+            });
+        }
+
+        const existingRequest = await Request.findOne({
+            pet: petId,
+            caretaker: req.user.id,
+            status: 'pending'
+        });
+
+        if (existingRequest) {
+            return res.status(400).json({
+                message: 'You already have a pending request for this pet'
+            });
+        }
 
         const newRequest = new Request({
-            pet,
-            owner,
-            caretaker,
-            message
+            pet: pet._id,
+            owner: pet.owner,
+            caretaker: req.user.id,
+            status: 'pending'
         });
 
         await newRequest.save();
 
-        res.status(201).json(newRequest);
+        return res.status(201).json(newRequest);
     } catch (error) {
-        res.status(500).json({ message: 'Error creating request', error });
+        return res.status(500).json({
+            message: 'Error creating request',
+            error: error.message
+        });
     }
 }
 
-async function getRequests(req, res) {
+/**
+ * Obtiene las solicitudes del dueño autenticado.
+ *
+ * @param {Object} req
+ * @param {Object} res
+ * @returns {Promise<void>}
+ */
+async function getOwnerRequests(req, res) {
     try {
-        const requests = await Request.find()
+        const requests = await Request.find({ owner: req.user.id })
             .populate('pet')
-            .populate('owner')
-            .populate('caretaker');
+            .populate('caretaker', 'name email')
+            .sort({ createdAt: -1 });
 
-        res.json(requests);
+        return res.status(200).json(requests);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching requests', error });
+        return res.status(500).json({
+            message: 'Error fetching requests',
+            error: error.message
+        });
     }
 }
 
+/**
+ * Actualiza el estado de una solicitud.
+ * El dueño acepta o rechaza.
+ *
+ * @param {Object} req
+ * @param {Object} res
+ * @returns {Promise<void>}
+ */
 async function updateRequestStatus(req, res) {
     try {
         const { id } = req.params;
         const { status } = req.body;
 
-        const request = await Request.findByIdAndUpdate(
-            id,
-            { status },
-            { new: true }
-        );
-
-        if (!request) {
-            return res.status(404).json({ message: 'Request not found' });
-        }
-
-        // 🔥 lógica importante: si se acepta → actualizar mascota
-        if (status === 'accepted') {
-            await Pets.findByIdAndUpdate(request.pet, {
-                status: 'assigned'
+        if (!status) {
+            return res.status(400).json({
+                message: 'Status is required'
             });
         }
 
-        res.json(request);
-    } catch (error) {
-        res.status(500).json({ message: 'Error updating request', error });
-    }
-}
-
-async function deleteRequest(req, res) {
-    try {
-        const { id } = req.params;
-
-        const request = await Request.findByIdAndDelete(id);
+        const request = await Request.findById(id);
 
         if (!request) {
-            return res.status(404).json({ message: 'Request not found' });
+            return res.status(404).json({
+                message: 'Request not found'
+            });
         }
 
-        res.json({ message: 'Request deleted' });
+        if (request.owner.toString() !== req.user.id && !req.user.isAdmin) {
+            return res.status(403).json({
+                message: 'Not authorized'
+            });
+        }
+
+        request.status = status;
+        await request.save();
+
+        return res.status(200).json(request);
     } catch (error) {
-        res.status(500).json({ message: 'Error deleting request', error });
+        return res.status(500).json({
+            message: 'Error updating request',
+            error: error.message
+        });
     }
 }
 
 module.exports = {
     createRequest,
-    getRequests,
-    updateRequestStatus,
-    deleteRequest
+    getOwnerRequests,
+    updateRequestStatus
 };

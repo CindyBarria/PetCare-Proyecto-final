@@ -1,31 +1,42 @@
+/**
+ * =========================================================
+ * ESTRUCTURA GENERAL DEL ARCHIVO
+ * - Modelo de solicitudes de cuidado
+ * - Relaciona mascota, dueño y cuidador
+ * =========================================================
+ */
+
 const mongoose = require('mongoose');
 
-const RequestSchema = new mongoose.Schema({
-    pet: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Pets',
-        required: true
+/**
+ * Esquema de solicitud de cuidado.
+ */
+const requestSchema = new mongoose.Schema(
+    {
+        pet: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Pet',
+            required: true
+        },
+        owner: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        },
+        caretaker: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        },
+        status: {
+            type: String,
+            enum: ['pending', 'accepted', 'rejected'],
+            default: 'pending'
+        }
     },
-    owner: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Users',
-        required: true
-    },
-    caretaker: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Users',
-        required: true
-    },
-    message: {
-        type: String
-    },
-    status: {
-        type: String,
-        enum: ['pending', 'accepted', 'rejected'],
-        default: 'pending'
+    {
+        timestamps: true
     }
-}, {
-    timestamps: true
-});
+);
 
-module.exports = mongoose.model('Request', RequestSchema);
+module.exports = mongoose.model('Request', requestSchema);
