@@ -2,7 +2,7 @@
  * =========================================================
  * ESTRUCTURA GENERAL DEL ARCHIVO
  * - Controladores de mascotas
- * - Gestionan crear, obtener, actualizar y eliminar mascotas
+ * - Crear, obtener, actualizar y eliminar mascotas
  * =========================================================
  */
 
@@ -11,8 +11,8 @@ const Pet = require('../models/pet');
 /**
  * Crea una nueva mascota asociada al usuario autenticado.
  *
- * @param {Object} req
- * @param {Object} res
+ * @param {Object} req - Request de Express
+ * @param {Object} res - Response de Express
  * @returns {Promise<void>}
  */
 async function createPets(req, res) {
@@ -20,25 +20,43 @@ async function createPets(req, res) {
         const {
             name,
             species,
+            sex,
             age,
+            weight,
             shortDescription,
             description,
-            imageUrl
+            imageUrl,
+            hasMicrochip,
+            isSterilized,
+            hasMedicalTreatment,
+            vaccinesUpToDate,
+            specialCare,
+            medicalHistory,
+            status
         } = req.body;
 
         if (!name || !species || !age || !shortDescription || !description) {
             return res.status(400).json({
-                message: 'All fields are required'
+                message: 'Missing required fields'
             });
         }
 
         const newPet = new Pet({
             name,
             species,
+            sex,
             age,
+            weight,
             shortDescription,
             description,
             imageUrl,
+            hasMicrochip,
+            isSterilized,
+            hasMedicalTreatment,
+            vaccinesUpToDate,
+            specialCare,
+            medicalHistory,
+            status,
             owner: req.user.id
         });
 
@@ -63,6 +81,7 @@ async function createPets(req, res) {
 async function getPets(req, res) {
     try {
         const pets = await Pet.find().populate('owner', 'name email');
+
         return res.status(200).json(pets);
     } catch (error) {
         return res.status(500).json({
@@ -82,10 +101,13 @@ async function getPets(req, res) {
 async function getPetById(req, res) {
     try {
         const { id } = req.params;
+
         const pet = await Pet.findById(id).populate('owner', 'name email');
 
         if (!pet) {
-            return res.status(404).json({ message: 'Pet not found' });
+            return res.status(404).json({
+                message: 'Pet not found'
+            });
         }
 
         return res.status(200).json(pet);
@@ -111,11 +133,15 @@ async function updatePets(req, res) {
         const pet = await Pet.findById(id);
 
         if (!pet) {
-            return res.status(404).json({ message: 'Pet not found' });
+            return res.status(404).json({
+                message: 'Pet not found'
+            });
         }
 
         if (pet.owner.toString() !== req.user.id && !req.user.isAdmin) {
-            return res.status(403).json({ message: 'Not authorized' });
+            return res.status(403).json({
+                message: 'Not authorized'
+            });
         }
 
         const updatedPet = await Pet.findByIdAndUpdate(id, req.body, {
@@ -148,11 +174,15 @@ async function deletePets(req, res) {
         const pet = await Pet.findById(id);
 
         if (!pet) {
-            return res.status(404).json({ message: 'Pet not found' });
+            return res.status(404).json({
+                message: 'Pet not found'
+            });
         }
 
         if (pet.owner.toString() !== req.user.id && !req.user.isAdmin) {
-            return res.status(403).json({ message: 'Not authorized' });
+            return res.status(403).json({
+                message: 'Not authorized'
+            });
         }
 
         await Pet.findByIdAndDelete(id);
