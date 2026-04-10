@@ -1,38 +1,90 @@
+/**
+ * =========================================================
+ * ESTRUCTURA GENERAL DEL ARCHIVO
+ * - Configuración principal del servidor Express
+ * - Conexión a MongoDB
+ * - Middlewares globales
+ * - Rutas de la API
+ * =========================================================
+ */
+
 require('dotenv').config();
-require('node:dns/promises').setServers(['1.1.1.1', '8.8.8.8']);
 
 const express = require('express');
-const cors = require('cors');
 const mongoose = require('mongoose');
 
-const usersRouter = require('./routers/users-router');
-const petsRouter = require('./routers/pets-router');
-const requestRouter = require('./routers/request-router');
+/* Seguridad y logging */
+const helmet = require('helmet');
+const morgan = require('morgan');
+
+/* Routers */
+const userRouter = require('./routers/users-router');
+const petRouter = require('./routers/pets-router');
 const reviewRouter = require('./routers/review-router');
+const requestRouter = require('./routers/request-router');
+
+/* Middlewares de error */
+const { notFound, errorHandler } = require('./middlewares/error-middleware');
 
 const app = express();
 
-const port = process.env.PORT || 3000;
-const mongoURI = process.env.MONGO_URI;
+/**
+ * =========================================================
+ * MIDDLEWARES GLOBALES
+ * =========================================================
+ */
 
-/* Middlewares globales */
-app.use(cors());
+/* Seguridad HTTP */
+app.use(helmet());
 
-/* Permitimos cuerpos más grandes porque la imagen se envía en base64 */
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+/* Logging de peticiones */
+app.use(morgan('dev'));
+
+/* Parseo de JSON */
+app.use(express.json());
+
+/**
+ * =========================================================
+ * CONEXIÓN A BASE DE DATOS
+ * =========================================================
+ */
 
 mongoose
-    .connect(mongoURI)
+    .connect(process.env.MONGO_URI)
     .then(() => console.log('MongoDB connected'))
-    .catch((error) => console.log('Could not connect to MongoDB:', error));
+    .catch((error) => console.error('MongoDB error:', error));
 
-/* Rutas principales */
-app.use('/users', usersRouter);
-app.use('/pets', petsRouter);
-app.use('/requests', requestRouter);
+/**
+ * =========================================================
+ * RUTAS PRINCIPALES
+ * =========================================================
+ */
+
+app.use('/users', userRouter);
+app.use('/pets', petRouter);
 app.use('/reviews', reviewRouter);
+app.use('/requests', requestRouter);
 
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+/**
+ * =========================================================
+ * MIDDLEWARES DE ERROR (DEBEN IR AL FINAL)
+ * =========================================================
+ */
+
+/* 404 */
+app.use(notFound);
+
+/* 500 */
+app.use(errorHandler);
+
+/**
+ * =========================================================
+ * SERVIDOR
+ * =========================================================
+ */
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
