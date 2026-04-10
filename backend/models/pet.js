@@ -53,13 +53,11 @@ const petSchema = new mongoose.Schema(
         /* Descripción breve para cards o listados */
         shortDescription: {
             type: String,
-            required: true
         },
 
         /* Descripción completa */
         description: {
             type: String,
-            required: true
         },
 
         /* Imagen en base64 o data URL */

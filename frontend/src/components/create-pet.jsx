@@ -87,9 +87,7 @@ export default function CreatePet({
     const isFormValid =
         form.name.trim() !== '' &&
         form.species.trim() !== '' &&
-        String(form.age).trim() !== '' &&
-        form.shortDescription.trim() !== '' &&
-        form.description.trim() !== '';
+        String(form.age).trim() !== '';
 
     /**
      * Actualiza campos de texto y select.
