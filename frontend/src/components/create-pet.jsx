@@ -114,39 +114,77 @@ export default function CreatePet({
             [name]: checked
         }));
     };
-
     /**
-     * Convierte imagen local a base64.
+     * Reduce y convierte imagen local a base64.
      *
      * @param {Object} event
-     * @returns {void}
+     * @returns {Promise<void>}
      */
-    const handleImageChange = (event) => {
+    const handleImageChange = async (event) => {
         const selectedFile = event.target.files[0];
 
         if (!selectedFile) return;
 
-        const maxSizeInBytes = 2 * 1024 * 1024;
+        const maxSizeInBytes = 8 * 1024 * 1024;
 
         if (selectedFile.size > maxSizeInBytes) {
-            setErrorMessage('La imagen es demasiado grande. Usa una imagen menor a 2MB.');
+            setErrorMessage(
+                'La imagen original es demasiado grande. Usa una foto menor a 8MB.'
+            );
             return;
         }
 
-        setErrorMessage('');
+        try {
+            setErrorMessage('');
+            const compressedImage = await resizeImage(selectedFile);
 
-        const reader = new FileReader();
-
-        reader.onloadend = () => {
             setForm((prevForm) => ({
                 ...prevForm,
-                imageUrl: reader.result
+                imageUrl: compressedImage
             }));
-        };
-
-        reader.readAsDataURL(selectedFile);
+        } catch (error) {
+            setErrorMessage(error,'No se pudo procesar la imagen.');
+        }
     };
+    /**
+ * Reduce una imagen usando canvas para disminuir su peso.
+ *
+ * @param {File} file
+ * @returns {Promise<string>}
+ */
+    function resizeImage(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
 
+            reader.onload = (event) => {
+                const image = new Image();
+
+                image.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const maxWidth = 900;
+                    const scale = maxWidth / image.width;
+
+                    canvas.width = image.width > maxWidth ? maxWidth : image.width;
+                    canvas.height =
+                        image.width > maxWidth
+                            ? image.height * scale
+                            : image.height;
+
+                    const context = canvas.getContext('2d');
+                    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                    resolve(compressedBase64);
+                };
+
+                image.onerror = () => reject(new Error('Error processing image'));
+                image.src = event.target.result;
+            };
+
+            reader.onerror = () => reject(new Error('Error reading image'));
+            reader.readAsDataURL(file);
+        });
+    }
     /**
      * Envía el formulario al backend.
      *
