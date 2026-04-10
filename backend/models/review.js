@@ -1,31 +1,41 @@
+/**
+ * =========================================================
+ * ESTRUCTURA GENERAL DEL ARCHIVO
+ * - Modelo de reseñas de cuidadores
+ * =========================================================
+ */
+
 const mongoose = require('mongoose');
 
-const ReviewSchema = new mongoose.Schema({
-    reviewer: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Users',
-        required: true
+/**
+ * Esquema de reseña.
+ */
+const reviewSchema = new mongoose.Schema(
+    {
+        caretaker: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        },
+        owner: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        },
+        rating: {
+            type: Number,
+            min: 1,
+            max: 5,
+            required: true
+        },
+        comment: {
+            type: String,
+            default: ''
+        }
     },
-    reviewedUser: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Users',
-        required: true
-    },
-    pet: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Pets'
-    },
-    rating: {
-        type: Number,
-        min: 1,
-        max: 5,
-        required: true
-    },
-    comment: {
-        type: String
+    {
+        timestamps: true
     }
-}, {
-    timestamps: true
-});
+);
 
-module.exports = mongoose.model('Review', ReviewSchema);
+module.exports = mongoose.model('Review', reviewSchema);
