@@ -143,7 +143,7 @@ export default function CreatePet({
                 imageUrl: compressedImage
             }));
         } catch (error) {
-            setErrorMessage(error,'No se pudo procesar la imagen.');
+            setErrorMessage('No se pudo procesar la imagen.');
         }
     };
     /**

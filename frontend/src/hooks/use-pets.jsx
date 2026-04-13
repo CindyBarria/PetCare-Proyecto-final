@@ -82,7 +82,7 @@ export function usePets() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: token
+                    Authorization: `Bearer ${token}`
                 },
                 body: JSON.stringify(petData)
             });
@@ -118,7 +118,7 @@ export function usePets() {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: token
+                    Authorization: `Bearer ${token}`
                 },
                 body: JSON.stringify(petData)
             });
@@ -152,8 +152,8 @@ export function usePets() {
             const response = await fetch(`${API_URL}/pets/${petId}`, {
                 method: 'DELETE',
                 headers: {
-                    Authorization: token
-                }
+                    Authorization: `Bearer ${token}`
+                },
             });
 
             const data = await response.json();

@@ -12,7 +12,6 @@ require('dotenv').config();
 
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
 
 /* Seguridad y logging */
 const helmet = require('helmet');
@@ -23,11 +22,13 @@ const userRouter = require('./routers/users-router');
 const petRouter = require('./routers/pets-router');
 const reviewRouter = require('./routers/review-router');
 const requestRouter = require('./routers/request-router');
+const cors = require('cors');
 
 /* Middlewares de error */
 const { notFound, errorHandler } = require('./middlewares/error-middleware');
 
 const app = express();
+app.use(cors());
 
 /**
  * =========================================================
@@ -35,21 +36,16 @@ const app = express();
  * =========================================================
  */
 
-/* Permite peticiones entre frontend y backend */
-app.use(cors());
-
 /* Seguridad HTTP */
 app.use(helmet());
 
 /* Logging de peticiones */
 app.use(morgan('dev'));
 
-/* Parseo de JSON con límite ampliado */
+/* Parseo de URL-encoded */
 app.use(express.json({ limit: '25mb' }));
 
-/* Parseo de formularios URL-encoded con límite ampliado */
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
-
 /**
  * =========================================================
  * CONEXIÓN A BASE DE DATOS
@@ -74,11 +70,14 @@ app.use('/requests', requestRouter);
 
 /**
  * =========================================================
- * MIDDLEWARES DE ERROR
+ * MIDDLEWARES DE ERROR (DEBEN IR AL FINAL)
  * =========================================================
  */
 
+/* 404 */
 app.use(notFound);
+
+/* 500 */
 app.use(errorHandler);
 
 /**
