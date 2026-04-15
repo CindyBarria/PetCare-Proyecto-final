@@ -142,6 +142,7 @@ export default function CreatePet({
                 ...prevForm,
                 imageUrl: compressedImage
             }));
+        // eslint-disable-next-line no-unused-vars
         } catch (error) {
             setErrorMessage('No se pudo procesar la imagen.');
         }
