@@ -9,10 +9,15 @@
 /**
  * Modal reutilizable.
  *
+ * Props:
+ * - isOpen: controla si el modal está visible
+ * - onClose: cierra el modal
+ * - children: contenido interno del modal
+ *
  * @param {Object} props
- * @param {boolean} props.isOpen - Controla si el modal está visible
- * @param {Function} props.onClose - Cierra el modal
- * @param {React.ReactNode} props.children - Contenido interno del modal
+ * @param {boolean} props.isOpen
+ * @param {Function} props.onClose
+ * @param {React.ReactNode} props.children
  * @returns {JSX.Element|null}
  */
 export default function Modal({ isOpen, onClose, children }) {
@@ -21,11 +26,10 @@ export default function Modal({ isOpen, onClose, children }) {
     }
 
     return (
-        /* Inicio: fondo oscuro del modal */
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-            {/* Inicio: caja principal del modal */}
+            {/* Caja principal del modal */}
             <div className="relative w-full max-w-2xl rounded-2xl bg-white p-6 shadow-lg">
-                {/* Botón para cerrar el modal */}
+                {/* Botón de cierre */}
                 <button
                     type="button"
                     onClick={onClose}
@@ -37,8 +41,6 @@ export default function Modal({ isOpen, onClose, children }) {
 
                 {children}
             </div>
-            {/* Fin: caja principal del modal */}
         </div>
-        /* Fin: fondo oscuro del modal */
     );
 }

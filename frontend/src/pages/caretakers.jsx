@@ -10,10 +10,12 @@
  */
 
 import { useEffect, useState } from 'react';
-import Navbar from '../components/ui/navbar';
-import Card from '../components/ui/card';
 
-const API_URL = import.meta.env.VITE_API_URL;
+import Card from '../components/ui/card';
+import Navbar from '../components/ui/navbar';
+
+/* URL base de la API */
+const API_URL = import.meta.env.VITE_API_URL.replace(/\/$/, '');
 
 /**
  * Página de cuidadores.
@@ -50,51 +52,51 @@ export default function Caretakers() {
 
     /**
      * =========================================================
-     * EFECTO INICIAL - OBTENER CUIDADORES
+     * EFECTO INICIAL - OBTENER CUIDADORES Y SUS RESEÑAS
      * =========================================================
      */
 
     useEffect(() => {
         let isMounted = true;
 
-async function fetchCaretakers() {
-    try {
-        const response = await fetch(`${API_URL}/users`);
-        const data = await response.json();
+        async function fetchCaretakers() {
+            try {
+                const response = await fetch(`${API_URL}/users`);
+                const data = await response.json();
 
-        if (!response.ok) {
-            throw new Error(data.message || 'Error fetching users');
-        }
+                if (!response.ok) {
+                    throw new Error(data.message || 'Error fetching users');
+                }
 
-        /* Filtrar solo usuarios con rol caretaker */
-        const filteredCaretakers = data.filter(
-            (user) => user.role === 'caretaker'
-        );
-
-        /* Cargar reseñas de cada cuidador para mostrar promedio desde el inicio */
-        const reviewsEntries = await Promise.all(
-            filteredCaretakers.map(async (caretaker) => {
-                const reviewsResponse = await fetch(
-                    `${API_URL}/reviews/${caretaker._id}`
+                /* Filtrar solo usuarios con rol caretaker */
+                const filteredCaretakers = data.filter(
+                    (user) => user.role === 'caretaker'
                 );
-                const reviewsData = await reviewsResponse.json();
 
-                return [caretaker._id, reviewsData];
-            })
-        );
+                /* Cargar reseñas iniciales para mostrar promedio desde el inicio */
+                const reviewsEntries = await Promise.all(
+                    filteredCaretakers.map(async (caretaker) => {
+                        const reviewsResponse = await fetch(
+                            `${API_URL}/reviews/${caretaker._id}`
+                        );
+                        const reviewsData = await reviewsResponse.json();
 
-        const reviewsObject = Object.fromEntries(reviewsEntries);
+                        return [caretaker._id, reviewsData];
+                    })
+                );
 
-        if (isMounted) {
-            setCaretakers(filteredCaretakers);
-            setCaretakerReviews(reviewsObject);
+                const reviewsObject = Object.fromEntries(reviewsEntries);
+
+                if (isMounted) {
+                    setCaretakers(filteredCaretakers);
+                    setCaretakerReviews(reviewsObject);
+                }
+            } catch (error) {
+                if (isMounted) {
+                    setErrorMessage(error.message);
+                }
+            }
         }
-    } catch (error) {
-        if (isMounted) {
-            setErrorMessage(error.message);
-        }
-    }
-}
 
         fetchCaretakers();
 
@@ -137,7 +139,7 @@ async function fetchCaretakers() {
     };
 
     /**
-     * Abre o cierra la sección de reseñas.
+     * Abre o cierra la sección de reseñas de un cuidador.
      *
      * @param {string} caretakerId
      * @returns {Promise<void>}
@@ -153,7 +155,7 @@ async function fetchCaretakers() {
     };
 
     /**
-     * Muestra el formulario de reseña para un cuidador.
+     * Muestra el formulario de reseña de un cuidador.
      *
      * @param {string} caretakerId
      * @returns {void}
@@ -167,7 +169,7 @@ async function fetchCaretakers() {
     };
 
     /**
-     * Crea una nueva reseña y refresca automáticamente la lista.
+     * Crea una nueva reseña y recarga automáticamente las reseñas del cuidador.
      *
      * @param {string} caretakerId
      * @returns {Promise<void>}
@@ -199,13 +201,13 @@ async function fetchCaretakers() {
                 throw new Error(data.message || 'Error creating review');
             }
 
-            /* Recargar reseñas del cuidador */
+            /* Recarga las reseñas del cuidador */
             await handleLoadReviews(caretakerId);
 
-            /* Cerrar formulario */
+            /* Oculta el formulario después de guardar */
             setOpenReviewForm(null);
 
-            /* Reset formulario */
+            /* Resetea el formulario */
             setNewReview({
                 rating: 5,
                 comment: ''
@@ -243,7 +245,7 @@ async function fetchCaretakers() {
                     {caretakers.map((caretaker) => {
                         const reviews = caretakerReviews[caretaker._id] || [];
 
-                        /* Promedio de reseñas */
+                        /* Cálculo del promedio de puntuación */
                         const averageRating =
                             reviews.length > 0
                                 ? (
@@ -271,7 +273,7 @@ async function fetchCaretakers() {
                                     {caretaker.email}
                                 </p>
 
-                                {/* Puntuación fija visible siempre */}
+                                {/* Puntuación visible siempre */}
                                 {averageRating ? (
                                     <p className="text-sm mt-2">
                                         ⭐ {averageRating}
@@ -282,7 +284,7 @@ async function fetchCaretakers() {
                                     </p>
                                 )}
 
-                                {/* Botón para ver/ocultar reseñas */}
+                                {/* Botón ver/ocultar reseñas */}
                                 <button
                                     onClick={() =>
                                         handleToggleReviews(caretaker._id)
@@ -294,7 +296,7 @@ async function fetchCaretakers() {
                                         : 'Ver reseñas'}
                                 </button>
 
-                                {/* Sección de reseñas */}
+                                {/* Bloque de reseñas */}
                                 {openReviews === caretaker._id ? (
                                     <div className="mt-4">
                                         {/* Lista de reseñas */}
@@ -344,41 +346,26 @@ async function fetchCaretakers() {
                                                         setNewReview({
                                                             ...newReview,
                                                             rating: Number(
-                                                                event.target
-                                                                    .value
+                                                                event.target.value
                                                             )
                                                         })
                                                     }
                                                     className="border p-2 rounded w-full mb-2"
                                                 >
-                                                    <option value={5}>
-                                                        5 ⭐
-                                                    </option>
-                                                    <option value={4}>
-                                                        4 ⭐
-                                                    </option>
-                                                    <option value={3}>
-                                                        3 ⭐
-                                                    </option>
-                                                    <option value={2}>
-                                                        2 ⭐
-                                                    </option>
-                                                    <option value={1}>
-                                                        1 ⭐
-                                                    </option>
+                                                    <option value={5}>5 ⭐</option>
+                                                    <option value={4}>4 ⭐</option>
+                                                    <option value={3}>3 ⭐</option>
+                                                    <option value={2}>2 ⭐</option>
+                                                    <option value={1}>1 ⭐</option>
                                                 </select>
 
                                                 <textarea
                                                     placeholder="Comentario"
-                                                    value={
-                                                        newReview.comment
-                                                    }
+                                                    value={newReview.comment}
                                                     onChange={(event) =>
                                                         setNewReview({
                                                             ...newReview,
-                                                            comment:
-                                                                event.target
-                                                                    .value
+                                                            comment: event.target.value
                                                         })
                                                     }
                                                     className="border p-2 rounded w-full mb-2"

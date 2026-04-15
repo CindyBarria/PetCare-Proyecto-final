@@ -11,13 +11,21 @@ import Button from './button';
 /**
  * Modal de confirmación / éxito.
  *
+ * Props:
+ * - isOpen: controla si el modal está visible
+ * - onClose: cierra el modal
+ * - title: título principal
+ * - message: mensaje descriptivo
+ * - buttonText: texto del botón
+ * - iconSrc: ruta del ícono
+ *
  * @param {Object} props
- * @param {boolean} props.isOpen - Controla si el modal está visible
- * @param {Function} props.onClose - Función para cerrar el modal
- * @param {string} props.title - Título principal del modal
- * @param {string} props.message - Mensaje descriptivo
- * @param {string} props.buttonText - Texto del botón principal
- * @param {string} props.iconSrc - Ruta del ícono SVG o imagen
+ * @param {boolean} props.isOpen
+ * @param {Function} props.onClose
+ * @param {string} props.title
+ * @param {string} props.message
+ * @param {string} props.buttonText
+ * @param {string} props.iconSrc
  * @returns {JSX.Element|null}
  */
 export default function SuccessModal({
@@ -34,13 +42,14 @@ export default function SuccessModal({
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4">
+            {/* Caja del modal */}
             <div className="w-full max-w-md rounded-[2rem] bg-[#F3F3F3] p-8 text-center shadow-lg">
-                {/* Título del modal */}
+                {/* Título */}
                 <h2 className="text-3xl font-semibold text-[#1A1A1A] mb-6">
                     {title}
                 </h2>
 
-                {/* Ícono de confirmación */}
+                {/* Ícono */}
                 {iconSrc ? (
                     <img
                         src={iconSrc}
@@ -49,12 +58,12 @@ export default function SuccessModal({
                     />
                 ) : null}
 
-                {/* Mensaje descriptivo */}
+                {/* Mensaje */}
                 <p className="text-xl leading-relaxed text-[#1A1A1A] mb-8">
                     {message}
                 </p>
 
-                {/* Botón para cerrar el modal */}
+                {/* Acción */}
                 <Button onClick={onClose}>
                     {buttonText}
                 </Button>
