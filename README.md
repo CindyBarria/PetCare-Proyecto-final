@@ -50,15 +50,15 @@ El sistema permite:
 Puedes probar la app con los siguientes usuarios:
 
 ### 👩‍💼 Admin
-- Email: cindy@petcare.com
+- Email: admin@petcare.com
 - Password: 123456
 
 ### 🐶 Dueño
-- Email: owner@test.com
+- Email: owner@petcare.com
 - Password: 123456
 
 ### 🐾 Cuidador
-- Email: caretaker@test.com
+- Email: caretaker@petcare.com
 - Password: 123456
 
 ---
