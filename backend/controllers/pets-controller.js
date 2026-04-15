@@ -2,7 +2,7 @@
  * =========================================================
  * ESTRUCTURA GENERAL DEL ARCHIVO
  * - Controladores de mascotas
- * - Crear, obtener, actualizar y eliminar mascotas
+ * - Crear, obtener, filtrar, actualizar y eliminar mascotas
  * =========================================================
  */
 
@@ -32,6 +32,8 @@ async function createPets(req, res) {
             vaccinesUpToDate,
             specialCare,
             medicalHistory,
+            symptoms,
+            reminders,
             status
         } = req.body;
 
@@ -56,6 +58,8 @@ async function createPets(req, res) {
             vaccinesUpToDate,
             specialCare,
             medicalHistory,
+            symptoms,
+            reminders,
             status,
             owner: req.user.id
         });
@@ -72,7 +76,21 @@ async function createPets(req, res) {
 }
 
 /**
- * Obtiene todas las mascotas.
+ * Obtiene mascotas con filtros opcionales por query params.
+ *
+ * Filtros disponibles:
+ * - species
+ * - status
+ * - sex
+ * - minAge
+ * - maxAge
+ * - search
+ *
+ * Ejemplos:
+ * /pets?species=Perro
+ * /pets?status=available
+ * /pets?minAge=1&maxAge=5
+ * /pets?search=luna
  *
  * @param {Object} req
  * @param {Object} res
@@ -80,7 +98,65 @@ async function createPets(req, res) {
  */
 async function getPets(req, res) {
     try {
-        const pets = await Pet.find().populate('owner', 'name email');
+        const {
+            species,
+            status,
+            sex,
+            minAge,
+            maxAge,
+            search
+        } = req.query;
+
+        /**
+         * Objeto dinámico de filtros para MongoDB.
+         * Se va completando según los parámetros recibidos.
+         */
+        const filters = {};
+
+        /* Filtro exacto por especie */
+        if (species) {
+            filters.species = species;
+        }
+
+        /* Filtro exacto por estado */
+        if (status) {
+            filters.status = status;
+        }
+
+        /* Filtro exacto por sexo */
+        if (sex) {
+            filters.sex = sex;
+        }
+
+        /**
+         * Filtro por rango de edad usando operadores MongoDB:
+         * - $gte: mayor o igual
+         * - $lte: menor o igual
+         */
+        if (minAge || maxAge) {
+            filters.age = {};
+
+            if (minAge) {
+                filters.age.$gte = Number(minAge);
+            }
+
+            if (maxAge) {
+                filters.age.$lte = Number(maxAge);
+            }
+        }
+
+        /**
+         * Búsqueda flexible por nombre o descripción breve usando regex.
+         * La opción i permite búsqueda sin distinguir mayúsculas/minúsculas.
+         */
+        if (search) {
+            filters.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { shortDescription: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const pets = await Pet.find(filters).populate('owner', 'name email');
 
         return res.status(200).json(pets);
     } catch (error) {

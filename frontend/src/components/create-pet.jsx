@@ -28,6 +28,7 @@ const initialFormState = {
     vaccinesUpToDate: false,
     specialCare: '',
     medicalHistory: '',
+    status: 'available'
 };
 
 /**
@@ -76,6 +77,7 @@ export default function CreatePet({
                 vaccinesUpToDate: editingPet.vaccinesUpToDate || false,
                 specialCare: editingPet.specialCare || '',
                 medicalHistory: editingPet.medicalHistory || '',
+                status: editingPet.status || 'available'
             });
             return;
         }
@@ -142,7 +144,7 @@ export default function CreatePet({
                 ...prevForm,
                 imageUrl: compressedImage
             }));
-        // eslint-disable-next-line no-unused-vars
+            // eslint-disable-next-line no-unused-vars
         } catch (error) {
             setErrorMessage('No se pudo procesar la imagen.');
         }
@@ -204,7 +206,8 @@ export default function CreatePet({
             const payload = {
                 ...form,
                 age: Number(form.age),
-                weight: Number(form.weight) || 0
+                weight: Number(form.weight) || 0,
+                status: form.status,
             };
 
             let savedPet = null;
@@ -319,6 +322,15 @@ export default function CreatePet({
                         value={form.shortDescription}
                         onChange={handleChange}
                     />
+                    <select
+                        name="status"
+                        value={form.status}
+                        onChange={handleChange}
+                        className="w-full h-12 px-4 border border-[#7A7A7A] rounded-lg bg-white text-[#1A1A1A] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] mb-3"
+                    >
+                        <option value="available">Disponible</option>
+                        <option value="unavailable">No disponible</option>
+                    </select>
                 </div>
 
                 <textarea

@@ -124,6 +124,14 @@ async function updateRequestStatus(req, res) {
         request.status = status;
         await request.save();
 
+        /* Si la solicitud fue aceptada, la mascota pasa a no disponible */
+        if (status === 'accepted') {
+            await Pet.findByIdAndUpdate(request.pet, {
+                status: 'unavailable'
+            });
+        }
+
+        /* Si la solicitud fue rechazada, no cambiamos la mascota */
         return res.status(200).json(request);
     } catch (error) {
         return res.status(500).json({

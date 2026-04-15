@@ -1,10 +1,9 @@
 /**
  * =========================================================
  * ESTRUCTURA GENERAL DEL ARCHIVO
- * - Home principal
- * - Muestra mascotas
- * - Permite crear solicitudes de cuidado
- * - Muestra solicitudes al dueño
+ * - Página principal después del login
+ * - Contiene navbar, bienvenida, filtros y listado de mascotas
+ * - Usa un modal para crear o editar publicaciones
  * =========================================================
  */
 
@@ -19,50 +18,56 @@ import Modal from '../components/ui/modal';
 import SuccessModal from '../components/ui/success-modal';
 import checkSuccessIcon from '../assets/check-success.svg';
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL.replace(/\/$/, '');
 
 export default function Home() {
     const { user } = useAuth();
     const { pets, errorMessage, deletePet, getPets } = usePets();
 
-    /* Estado para controlar el modal */
+    /* Estado para controlar el modal de mascota */
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    /* Estado para saber si estamos editando una mascota */
+    /* Estado para edición de mascota */
     const [editingPet, setEditingPet] = useState(null);
-    const [requestMessage, setRequestMessage] = useState('');
-    const [ownerRequests, setOwnerRequests] = useState([]);
-    const isOwner = user.role === 'owner';
-    const isCaretaker = user.role === 'caretaker';
-    const isAdmin = user.isAdmin;
 
+    /* Estado para mostrar mensajes de solicitudes */
+    const [requestMessage, setRequestMessage] = useState('');
+
+    /* Estado para guardar solicitudes del dueño */
+    const [ownerRequests, setOwnerRequests] = useState([]);
+
+    /* Estado para modal de éxito */
     const [successModal, setSuccessModal] = useState({
         isOpen: false,
         title: '',
         message: ''
     });
 
-    useEffect(() => {
-        if (isOwner || isAdmin) {
-            getRequests();
-        }
-    }, [user]);
+    /* Estado agrupado de filtros */
+    const [filters, setFilters] = useState({
+        species: '',
+        status: '',
+        sex: '',
+        search: ''
+    });
 
-
-    if (!user) {
-        return <p className="p-6">No autenticado</p>;
-    }
+    /* Variables derivadas del usuario */
+    const isOwner = user?.role === 'owner';
+    const isCaretaker = user?.role === 'caretaker';
+    const isAdmin = user?.isAdmin;
 
     /**
      * Obtiene las solicitudes del dueño autenticado.
      */
     const getRequests = async () => {
         try {
+            if (!user) return;
+
             const token = localStorage.getItem('token');
 
             const response = await fetch(`${API_URL}/requests/owner`, {
                 headers: {
-                    Authorization: token
+                    Authorization: `Bearer ${token}`
                 }
             });
 
@@ -78,7 +83,55 @@ export default function Home() {
         }
     };
 
+    /**
+     * Carga inicial de solicitudes del dueño.
+     */
+    useEffect(() => {
+        if (user?.role === 'owner' || user?.isAdmin) {
+            getRequests();
+        }
+    }, [user]);
 
+    /**
+     * Actualiza un filtro del formulario.
+     *
+     * @param {Object} event
+     * @returns {void}
+     */
+    const handleFilterChange = ({ target: { name, value } }) => {
+        setFilters((prevFilters) => ({
+            ...prevFilters,
+            [name]: value
+        }));
+    };
+
+    /**
+     * Aplica los filtros al listado de mascotas.
+     *
+     * @param {Object} event
+     * @returns {Promise<void>}
+     */
+    const handleApplyFilters = async (event) => {
+        event.preventDefault();
+        await getPets(filters);
+    };
+
+    /**
+     * Limpia los filtros y recarga todas las mascotas.
+     *
+     * @returns {Promise<void>}
+     */
+    const handleClearFilters = async () => {
+        const emptyFilters = {
+            species: '',
+            status: '',
+            sex: '',
+            search: ''
+        };
+
+        setFilters(emptyFilters);
+        await getPets(emptyFilters);
+    };
 
     /**
      * Abre el modal para crear mascota.
@@ -107,6 +160,17 @@ export default function Home() {
     };
 
     /**
+     * Cierra el modal de éxito.
+     */
+    const handleCloseSuccessModal = () => {
+        setSuccessModal({
+            isOpen: false,
+            title: '',
+            message: ''
+        });
+    };
+
+    /**
      * Elimina una publicación.
      *
      * @param {string} petId
@@ -124,7 +188,7 @@ export default function Home() {
      * cuando una mascota se guarda correctamente.
      */
     const handlePetSaved = async () => {
-        await getPets();
+        await getPets(filters);
 
         if (isOwner || isAdmin) {
             await getRequests();
@@ -139,7 +203,6 @@ export default function Home() {
             message: 'Tu mascota ya fue publicada correctamente en PetCare.'
         });
     };
-
 
     /**
      * Crea una solicitud de cuidado para una mascota.
@@ -156,7 +219,7 @@ export default function Home() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: token
+                    Authorization: `Bearer ${token}`
                 },
                 body: JSON.stringify({ petId })
             });
@@ -191,7 +254,7 @@ export default function Home() {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: token
+                    Authorization: `Bearer ${token}`
                 },
                 body: JSON.stringify({ status })
             });
@@ -208,21 +271,14 @@ export default function Home() {
         }
     };
 
-    const handleCloseSuccessModal = () => {
-        setSuccessModal({
-            isOpen: false,
-            title: '',
-            message: ''
-        });
-    };
+    if (!user) {
+        return <p className="p-6">No autenticado</p>;
+    }
 
     return (
         <div className="min-h-screen bg-[var(--color-background)]">
-            {/* Inicio: navbar */}
             <Navbar />
-            {/* Fin: navbar */}
 
-            {/* Inicio: contenido principal */}
             <main className="p-6 max-w-7xl mx-auto">
                 {/* Encabezado de bienvenida */}
                 <section className="mb-8 bg-white border border-[var(--color-border)] rounded-2xl p-6">
@@ -234,7 +290,7 @@ export default function Home() {
                         ¿Quieres publicar a tu mascota y encontrar un cuidador ideal?
                     </p>
 
-                    {(isOwner || user.isAdmin) ? (
+                    {(isOwner || isAdmin) ? (
                         <div className="max-w-xs">
                             <Button onClick={handleOpenCreateModal}>
                                 Agregar mascota
@@ -243,10 +299,79 @@ export default function Home() {
                     ) : null}
                 </section>
 
+                {/* Filtros */}
+                <section className="mb-8 bg-white border border-[var(--color-border)] rounded-2xl p-6">
+                    <h2 className="text-xl font-semibold text-[var(--color-primary)] mb-4">
+                        Filtrar mascotas
+                    </h2>
+
+                    <form onSubmit={handleApplyFilters}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                            <select
+                                name="species"
+                                value={filters.species}
+                                onChange={handleFilterChange}
+                                className="w-full h-11 px-4 border border-[#7A7A7A] rounded-lg bg-white text-[#1A1A1A]"
+                            >
+                                <option value="">Todas las especies</option>
+                                <option value="Perro">Perro</option>
+                                <option value="Gato">Gato</option>
+                                <option value="Conejo">Conejo</option>
+                                <option value="Ave">Ave</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+
+                            <select
+                                name="status"
+                                value={filters.status}
+                                onChange={handleFilterChange}
+                                className="w-full h-11 px-4 border border-[#7A7A7A] rounded-lg bg-white text-[#1A1A1A]"
+                            >
+                                <option value="">Todos los estados</option>
+                                <option value="available">Disponible</option>
+                                <option value="unavailable">No disponible</option>
+                            </select>
+
+                            <select
+                                name="sex"
+                                value={filters.sex}
+                                onChange={handleFilterChange}
+                                className="w-full h-11 px-4 border border-[#7A7A7A] rounded-lg bg-white text-[#1A1A1A]"
+                            >
+                                <option value="">Todos los sexos</option>
+                                <option value="male">Macho</option>
+                                <option value="female">Hembra</option>
+                            </select>
+
+                            <input
+                                type="text"
+                                name="search"
+                                placeholder="Buscar por nombre"
+                                value={filters.search}
+                                onChange={handleFilterChange}
+                                className="w-full h-11 px-4 border border-[#7A7A7A] rounded-lg bg-white text-[#1A1A1A]"
+                            />
+                        </div>
+
+                        <div className="flex flex-col md:flex-row gap-3">
+                            <Button type="submit" fullWidth={false}>
+                                Aplicar filtros
+                            </Button>
+
+                            <button
+                                type="button"
+                                onClick={handleClearFilters}
+                                className="h-11 px-5 rounded-full border border-[var(--color-border)] text-sm text-[var(--color-text-light)] hover:bg-gray-50 transition-colors"
+                            >
+                                Limpiar filtros
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
                 {errorMessage ? (
                     <p className="text-sm text-red-600 mb-4">{errorMessage}</p>
                 ) : null}
-
 
                 {requestMessage ? (
                     <p className="text-sm text-[var(--color-primary)] mb-4">
@@ -254,7 +379,7 @@ export default function Home() {
                     </p>
                 ) : null}
 
-                {(isOwner || user.isAdmin) && ownerRequests.length > 0 ? (
+                {(isOwner || isAdmin) && ownerRequests.length > 0 ? (
                     <section className="mb-8 bg-white border border-[var(--color-border)] rounded-2xl p-6">
                         <h2 className="text-xl font-semibold text-[var(--color-primary)] mb-4">
                             Solicitudes de cuidado
@@ -303,6 +428,7 @@ export default function Home() {
                     </section>
                 ) : null}
 
+                {/* Listado de publicaciones */}
                 <section>
                     <h2 className="text-xl font-semibold text-[var(--color-primary)] mb-4">
                         Publicaciones de mascotas
@@ -311,7 +437,7 @@ export default function Home() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {pets.map((pet) => {
                             const canManage =
-                                user.isAdmin || pet.owner?._id === user._id;
+                                isAdmin || pet.owner?._id === user._id;
 
                             return (
                                 <PetCard
@@ -328,9 +454,7 @@ export default function Home() {
                     </div>
                 </section>
             </main>
-            {/* Fin: contenido principal */}
 
-            {/* Inicio: modal de creación / edición */}
             <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
                 <CreatePet
                     editingPet={editingPet}
@@ -338,8 +462,7 @@ export default function Home() {
                     onPetSaved={handlePetSaved}
                 />
             </Modal>
-            {/* Fin: modal de creación / edición */}
-            {/* Inicio: modal de éxito */}
+
             <SuccessModal
                 isOpen={successModal.isOpen}
                 onClose={handleCloseSuccessModal}
@@ -348,7 +471,6 @@ export default function Home() {
                 buttonText="Volver a inicio"
                 iconSrc={checkSuccessIcon}
             />
-            {/* Fin: modal de exito*/}
         </div>
     );
 }

@@ -73,13 +73,15 @@ export default function PetCard({
                     </div>
 
                     {/* Estado */}
-                    {pet.status ? (
-                        <span className="text-xs px-3 py-1 rounded-full bg-[#DFF3F2] text-[var(--color-primary)]">
-                            {pet.status === 'available'
-                                ? 'Disponible'
-                                : 'No disponible'}
-                        </span>
-                    ) : null}
+                    <span
+                        className={`text-xs px-3 py-1 rounded-full font-medium
+                        ${pet.status === 'available'
+                                ? 'bg-[#DFF3F2] text-[var(--color-primary)]'
+                                : 'bg-[#FFF3E4] text-[#F4A261] border border-[#F4A261]/30'
+                            }`}
+                    >
+                        {pet.status === 'available' ? 'Disponible' : 'No disponible'}
+                    </span>
                 </div>
 
                 {/* Descripción breve */}

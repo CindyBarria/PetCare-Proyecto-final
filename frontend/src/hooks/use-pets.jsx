@@ -4,13 +4,13 @@
  * - Custom hook para gestionar mascotas
  * - Obtiene listado
  * - Crea, actualiza y elimina publicaciones
+ * - Permite obtener mascotas filtradas por query params
  * =========================================================
  */
 
 import { useEffect, useState } from 'react';
 
-/* URL base de la API obtenida desde variables de entorno */
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL.replace(/\/$/, '');
 
 /**
  * Custom hook para gestionar las mascotas.
@@ -41,16 +41,47 @@ export function usePets() {
     const [isLoading, setIsLoading] = useState(false);
 
     /**
-     * Obtiene todas las mascotas desde la API.
+     * Obtiene mascotas desde la API con filtros opcionales.
      *
+     * Filtros soportados:
+     * - species
+     * - status
+     * - sex
+     * - search
+     *
+     * @param {Object} filters
      * @returns {Promise<void>}
      */
-    const getPets = async () => {
+    const getPets = async (filters = {}) => {
         try {
             setIsLoading(true);
             setErrorMessage('');
 
-            const response = await fetch(`${API_URL}/pets`);
+            /* Construcción dinámica de query params */
+            const queryParams = new URLSearchParams();
+
+            if (filters.species) {
+                queryParams.append('species', filters.species);
+            }
+
+            if (filters.status) {
+                queryParams.append('status', filters.status);
+            }
+
+            if (filters.sex) {
+                queryParams.append('sex', filters.sex);
+            }
+
+            if (filters.search) {
+                queryParams.append('search', filters.search);
+            }
+
+            const queryString = queryParams.toString();
+            const requestUrl = queryString
+                ? `${API_URL}/pets?${queryString}`
+                : `${API_URL}/pets`;
+
+            const response = await fetch(requestUrl);
             const data = await response.json();
 
             if (!response.ok) {
@@ -75,7 +106,6 @@ export function usePets() {
         try {
             setErrorMessage('');
 
-            /* Token almacenado luego del login */
             const token = localStorage.getItem('token');
 
             const response = await fetch(`${API_URL}/pets`, {
@@ -153,7 +183,7 @@ export function usePets() {
                 method: 'DELETE',
                 headers: {
                     Authorization: `Bearer ${token}`
-                },
+                }
             });
 
             const data = await response.json();
@@ -171,13 +201,11 @@ export function usePets() {
 
     /**
      * Carga inicial del listado de mascotas al montar el componente.
-     * Se incluye cleanup para evitar actualizaciones cuando el componente
-     * deja de existir.
      */
     useEffect(() => {
         let isMounted = true;
 
-        async function fetchPets() {
+        async function fetchInitialPets() {
             try {
                 const response = await fetch(`${API_URL}/pets`);
                 const data = await response.json();
@@ -196,7 +224,7 @@ export function usePets() {
             }
         }
 
-        fetchPets();
+        fetchInitialPets();
 
         return () => {
             isMounted = false;
